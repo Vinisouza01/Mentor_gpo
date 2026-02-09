@@ -1,2 +1,283 @@
 # Mentor_gpo
-Ia for mentor
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor GPO - IA de Planejamento</title>
+    <style>
+        :root {
+            --primary: #1a2a6c;
+            --secondary: #b21f1f;
+            --accent: #fdbb2d;
+            --success: #27ae60;
+            --bg: #f0f2f5;
+            --text: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        header h1 { margin: 0; font-size: 1.2rem; }
+        header p { margin: 5px 0 0; font-size: 0.8rem; opacity: 0.9; }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 15px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bot-msg {
+            background: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .user-msg {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .option-btn {
+            background: white;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .option-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .input-area {
+            background: white;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #ddd;
+        }
+        input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            outline: none;
+        }
+        button#send-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+            border: 1px solid #eee;
+        }
+        .highlight { color: var(--secondary); font-weight: bold; }
+        .footer-note { font-size: 0.7rem; color: #888; margin-top: 5px; text-align: right; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Mentor Digital GPO</h1>
+    <p>IA de Apoio ao Diagnóstico e Planejamento</p>
+</header>
+
+<div id="chat-container">
+    <div class="message bot-msg">
+        Olá! Sou seu assistente de planejamento ortodôntico. Vou te guiar usando os protocolos do <strong>GPO</strong> e <strong>Diagnóstico 5D</strong>.<br><br>
+        Para começar, qual é a <strong>Classe de Angle</strong> do seu paciente?
+        <div class="options-container">
+            <button class="option-btn" onclick="handleOption('Classe I')">Classe I</button>
+            <button class="option-btn" onclick="handleOption('Classe II')">Classe II</button>
+            <button class="option-btn" onclick="handleOption('Classe III')">Classe III</button>
+        </div>
+    </div>
+</div>
+
+<div class="input-area">
+    <input type="text" id="user-input" placeholder="Digite sua dúvida aqui...">
+    <button id="send-btn" onclick="handleTextSend()">➤</button>
+</div>
+
+<script>
+    const chatContainer = document.getElementById('chat-container');
+    let userData = { classe: '', perfil: '', denticao: '', problema: '', severidade: '' };
+    let step = 'classe';
+
+    const knowledgeBase = {
+        diagnostico: {
+            "Classe I": "Na Classe I, o foco é o equilíbrio. Verifique se o problema é apenas dentário ou se há desvio esquelético (SNA/SNB).",
+            "Classe II": "Classe II detectada. Verifique a Convexidade de Ricketts. Se > 2mm, a origem é esquelética.",
+            "Classe III": "Classe III detectada. Verifique se a causa é Prognatismo Mandibular ou Retrusão Maxilar."
+        },
+        planejamento: {
+            "decidua_apinhamento_leve": "Protocolo: Expansão (3D) com Ortopedia Funcional ou Placas Planas. Use Molas Digitais para pequenos avanços.",
+            "mista_apinhamento_moderada": "Protocolo: Expansão (2D) e considere o uso de Arco Base de Avanço para ganhar espaço.",
+            "permanente_apinhamento_severa": "Protocolo: Provável Exodontia de 4 Pré-molares. Dê preferência a Arcos Segmentados para controle de ancoragem.",
+            "permanente_protrusao_severa": "Protocolo: Retração de caninos com arco seccionado. Evite exodontias em pacientes Braquifaciais."
+        }
+    };
+
+    function addMessage(text, type) {
+        const msg = document.createElement('div');
+        msg.className = `message ${type === 'bot' ? 'bot-msg' : 'user-msg'}`;
+        msg.innerHTML = text;
+        chatContainer.appendChild(msg);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function handleOption(val) {
+        addMessage(val, 'user');
+        processStep(val);
+    }
+
+    function handleTextSend() {
+        const input = document.getElementById('user-input');
+        if (!input.value) return;
+        const val = input.value;
+        addMessage(val, 'user');
+        input.value = '';
+        
+        // Simulação de IA respondendo a texto livre baseado no banco
+        setTimeout(() => {
+            if (val.toLowerCase().includes('arco base')) {
+                addMessage("O <strong>Arco Base</strong> é indicado no seu guia para intrusão, retração ou avanço de incisivos, especialmente na dentição mista e permanente.", 'bot');
+            } else if (val.toLowerCase().includes('exodontia')) {
+                addMessage("Segundo o GPO, exodontias são consideradas em apinhamentos severos (>7mm) ou protrusões acentuadas, mas devem ser evitadas em pacientes Braquifaciais.", 'bot');
+            } else {
+                addMessage("Entendi sua dúvida. Vamos continuar o fluxo de planejamento para eu ser mais preciso?", 'bot');
+                askNext();
+            }
+        }, 600);
+    }
+
+    function processStep(val) {
+        setTimeout(() => {
+            if (step === 'classe') {
+                userData.classe = val;
+                addMessage(`Entendido. ${knowledgeBase.diagnostico[val]}<br><br>Qual o <strong>perfil facial</strong> do paciente?`, 'bot');
+                const div = document.createElement('div');
+                div.className = 'options-container';
+                div.innerHTML = `
+                    <button class="option-btn" onclick="handleOption('Protruso')">Protruso (Dentes p/ frente)</button>
+                    <button class="option-btn" onclick="handleOption('Retruso')">Retruso (Dentes p/ trás)</button>
+                    <button class="option-btn" onclick="handleOption('Normal')">Normal</button>
+                `;
+                chatContainer.appendChild(div);
+                step = 'perfil';
+            } else if (step === 'perfil') {
+                userData.perfil = val;
+                addMessage(`Certo. Agora me diga a <strong>fase da dentição</strong>:`, 'bot');
+                const div = document.createElement('div');
+                div.className = 'options-container';
+                div.innerHTML = `
+                    <button class="option-btn" onclick="handleOption('Decídua')">Decídua (Leite)</button>
+                    <button class="option-btn" onclick="handleOption('Mista')">Mista</button>
+                    <button class="option-btn" onclick="handleOption('Permanente')">Permanente</button>
+                `;
+                chatContainer.appendChild(div);
+                step = 'denticao';
+            } else if (step === 'denticao') {
+                userData.denticao = val;
+                addMessage(`Qual o <strong>problema principal</strong> observado?`, 'bot');
+                const div = document.createElement('div');
+                div.className = 'options-container';
+                div.innerHTML = `
+                    <button class="option-btn" onclick="handleOption('Apinhamento')">Apinhamento / Falta Espaço</button>
+                    <button class="option-btn" onclick="handleOption('Protrusão')">Protrusão Dentária</button>
+                    <button class="option-btn" onclick="handleOption('Mordida Cruzada')">Mordida Cruzada</button>
+                `;
+                chatContainer.appendChild(div);
+                step = 'problema';
+            } else if (step === 'problema') {
+                userData.problema = val;
+                addMessage(`E qual a <strong>severidade</strong>?`, 'bot');
+                const div = document.createElement('div');
+                div.className = 'options-container';
+                div.innerHTML = `
+                    <button class="option-btn" onclick="handleOption('Leve')">Leve</button>
+                    <button class="option-btn" onclick="handleOption('Moderada')">Moderada</button>
+                    <button class="option-btn" onclick="handleOption('Severa')">Severa</button>
+                `;
+                chatContainer.appendChild(div);
+                step = 'severidade';
+            } else if (step === 'severidade') {
+                userData.severidade = val;
+                finishPlanning();
+            }
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 500);
+    }
+
+    function finishPlanning() {
+        const key = `${userData.denticao.toLowerCase()}_${userData.problema.toLowerCase().replace('apinhamento', 'apinhamento').replace('protrusão', 'protrusao')}_${userData.severidade.toLowerCase()}`;
+        const recomendacao = knowledgeBase.planejamento[key] || "Protocolo personalizado: Verifique a discrepância total e a convexidade de Ricketts para decidir entre Expansão ou Extração.";
+        
+        addMessage(`
+            <div class="card">
+                <strong>Análise Final do Mentor:</strong><br><br>
+                Diagnóstico: <span class="highlight">${userData.classe} - Perfil ${userData.perfil}</span><br>
+                Condição: ${userData.problema} (${userData.severidade}) na dentição ${userData.denticao}.<br><br>
+                <strong>Sugestão GPO:</strong><br>
+                ${recomendacao}
+                <div class="footer-note">Lembre-se: Este é um apoio à decisão. A palavra final é do ortodontista.</div>
+            </div>
+            <br>Deseja fazer outro planejamento?
+            <div class="options-container">
+                <button class="option-btn" onclick="location.reload()">Sim, novo caso</button>
+            </div>
+        `, 'bot');
+    }
+</script>
+
+</body>
+</html>
